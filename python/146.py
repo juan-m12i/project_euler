@@ -1,5 +1,7 @@
 import math
 import random
+import numpy as np
+from datetime import datetime
  
 from random import randrange
 # https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test
@@ -45,7 +47,6 @@ def is_prime(n):
     '''
     For the pyramid of doom see https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test
     section Deterministic variants
-
     if n < 2,047, it is enough to test a = 2;
     if n < 1,373,653, it is enough to test a = 2 and 3;
     if n < 9,080,191, it is enough to test a = 31 and 73;
@@ -56,7 +57,6 @@ def is_prime(n):
     if n < 2,152,302,898,747, it is enough to test a = 2, 3, 5, 7, and 11;
     if n < 3,474,749,660,383, it is enough to test a = 2, 3, 5, 7, 11, and 13;
     if n < 341,550,071,728,321, it is enough to test a = 2, 3, 5, 7, 11, 13, and 17.
-
     '''
 
     if n % 2 == 0:
@@ -93,9 +93,41 @@ def is_prime(n):
 
     return True
 
+def sieve_for_primes_to(n):
+    size = n//2
+    sieve = [1]*size
+    limit = int(n**0.5)
+    for i in range(1,limit):
+        if sieve[i]:
+            val = 2*i+1
+            tmp = ((size-1) - i)//val 
+            sieve[i+val::val] = [0]*tmp
+    return [2] + [i*2+1 for i, v in enumerate(sieve) if v and i>0]
+
+def get_n_primes(n):
+    sv = sieve_for_primes_to(n * n)
+    return sv
+
+def check(test, i):
+    numbers_to_add = [13, 1, 9,  3, 7, 27]
+    for k in numbers_to_add:
+        if (test + k) % i == 0:
+            return False
+    return True
+
+def get_mat(primes):
+    arr = np.zeros((len(primes),primes[len(primes)-1]))
+    for ii, i in enumerate(primes):
+        for j in range(0, i):
+            test = (j * j) % i
+            if check (test, i):
+                arr[ii,j] = 1    
+    return arr
+
 
 
 def run():
+    print(str(datetime.now()))
     # order is reversed because more numbers fails on 13 and 1 than 27 and 3
     numbers_to_add = [
         13, 1, 9,  3, 7, 27
@@ -103,19 +135,46 @@ def run():
     max_num = 150 * 1000000
 
     s = 0
+    
+    n_prims = 7
+    primes = get_n_primes(n_prims)
+    m = 1
+    for i in range (0, n_prims):
+        m *= primes[i]
+    mat = np.ones((1,m))
+    arr = get_mat(primes)
+    
+    for i in range (0, n_prims):
+        n_rep = int(m / primes[i])
+        mat = mat * np.tile(arr[i,:primes[i]],n_rep)
+    
+    res = np.where(mat!= 0)
+    iterat = res[1]
+    n_iter = len(iterat)
+    it = 1 * m * np.ones((1,n_iter))
+    n_reps = max_num / m + 1
+    it = iterat + (i * m * np.ones((1,n_iter)))
+    niterat = iterat
+    for i in range(1,n_reps):
+        it = (i * m * np.ones((1,n_iter)))
+        niterat = np.concatenate([niterat, iterat + it[0]])
 
-    for num in range(10, max_num, 10):
-        squared = num * num
-        if (squared % 9 == 0 or
-            squared % 13 == 0 or
-            squared % 27 == 0):
-            continue
+    res = np.where(niterat < max_num)
+    niterat[res[0]]
 
-        if (squared % 3 != 1):
-            continue
-
-        if (squared % 7 != 2 and squared % 7 != 3):
-            continue
+    for num in niterat[res[0]]:
+    #for num in range(10, max_num, 10):
+        squared = int(num) * int(num)
+    #    if (squared % 9 == 0 or
+    #        squared % 13 == 0 or
+    #        squared % 27 == 0):
+    #        continue
+    
+    #    if (squared % 3 != 1):
+    #        continue
+    
+    #    if (squared % 7 != 2 and squared % 7 != 3):
+    #       continue
 
         for num_to_add in numbers_to_add:
             temp = squared + num_to_add
@@ -128,7 +187,8 @@ def run():
             if l == 6:
                 print(num, l)
                 s += num
-
+                
+    print(str(datetime.now()))
     return s
 
 
